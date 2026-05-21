@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meok-nis2-nl-register-mcp"
+version = "1.0.0"
+description = "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II (important), generates NCSC-NL portal payload, emits HMAC-signed Article 21 attestation. Deadline June 2026. By MEOK AI Labs."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Nicholas Templeman", email = "nicholas@meok.ai" }]
+keywords = ["mcp", "nis2", "wbni", "netherlands", "ncsc-nl", "compliance", "meok"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = ["mcp[cli]>=1.3.0"]
+
+[project.urls]
+Homepage = "https://meok.ai/governance"
+Repository = "https://github.com/CSOAI-ORG/meok-nis2-nl-register-mcp"
+
+[project.scripts]
+meok-nis2-nl-register-mcp = "server:main"
+
+[tool.setuptools]
+py-modules = ["server"]
