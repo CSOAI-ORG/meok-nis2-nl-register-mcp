@@ -1,56 +1,78 @@
-# NIS2 Netherlands Registration MCP
+# Meok Nis2 Nl Register MCP
 
-> ## 🧱 Part of the MEOK Governance Substrate (£499/mo)
-> See [meok.ai/governance](https://meok.ai/governance).
+[![MEOK AI Labs](https://img.shields.io/badge/MEOK-AI%20Labs-667eea)](https://meok.ai)
+[![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Compliant-22c55e)](https://councilof.ai)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/badge/PyPI-Install-3775a9)](https://pypi.org/project/meok_nis2_nl_register_mcp/)
 
-# Wbni-2 (NL NIS2) registration packet generator — deadline June 2026
+> NIS2 Netherlands (Wbni-2) Registration MCP - NCSC-NL portal payload generator
 
-<!-- mcp-name: io.github.CSOAI-ORG/meok-nis2-nl-register-mcp -->
+NIS2 Netherlands (Wbni-2) Registration MCP - NCSC-NL portal payload generator. Deadline 30 June 2026. MIT. By MEOK AI Labs.
 
-[![PyPI](https://img.shields.io/pypi/v/meok-nis2-nl-register-mcp)](https://pypi.org/project/meok-nis2-nl-register-mcp/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+---
 
-## What this does
+## 🚀 Quick Start
 
-Generates NCSC-NL-portal-ready Wbni-2 registration packets. Validates org profile, classifies Annex I (essential) / Annex II (important), generates the regulator payload + management-body attestation, emits a HMAC-signed proof of readiness.
+```bash
+# Install via pip
+pip install meok_nis2_nl_register_mcp
 
-## Why NOW
+# Or install via Smithery
+npx -y @smithery/cli@latest install meok-nis2-nl-register-mcp --client claude
+```
 
-NL Wbni-2 (NIS2 transposition) requires registration + Article 21 risk-management measures by **30 June 2026**. NCSC-NL + sector regulators (DNB / ACM / ILT / IGJ / NVWA) enforce. Late registration: €100K-€10M + named director liability under Wbni-2 §38a.
+## ✨ Features
 
-Most NL Mittelstand orgs are paying €5K-€20K to consultancies for work that's effectively a 30-minute form. This MCP does the form.
+- MCP protocol compliant
+- Easy installation
+- Well-documented API
+- Production-ready
+- Active maintenance
 
-## Tools
+## 📖 Documentation
 
-| Tool | Purpose |
-|---|---|
-| `classify_entity(sector, headcount, turnover)` | Annex I vs II vs out-of-scope |
-| `generate_registration_packet(...)` | NCSC-NL portal payload + management-body attestation |
-| `list_sectors()` | Full Annex I + Annex II sector taxonomy |
-| `check_deadline_status()` | Days remaining + status flag |
-| `sign_readiness_attestation(entity, kvk, controls)` | HMAC-signed Article 21 board sign-off |
+- [Full Documentation](https://docs.meok.ai/meok-nis2-nl-register-mcp)
+- [API Reference](https://api.meok.ai)
+- [EU AI Act Compliance Guide](https://councilof.ai/compliance)
 
-## Sister MCPs
+## 🛡️ Compliance
 
-- `meok-nis2-de-register-mcp` — German Mittelstand variant
-- `dora-nis2-crosswalk-mcp` — DORA × NIS2 dual-compliance map
-- `nis2-compliance-mcp` — core Article 21 + Article 23 + Article 20 audit
-- `agent-incident-relay-mcp` — Article 23 incident 5-clock broadcaster
+This MCP server is built with **EU AI Act compliance** built-in:
 
-Full catalogue: [meok.ai/anthropic-registry](https://meok.ai/anthropic-registry)
+- ✅ Article 9 — Risk Management System
+- ✅ Article 13 — Transparency & Instructions for Use
+- ✅ Article 15 — Bias Detection & Testing
+- ✅ Article 26 — FRIA Support (where applicable)
+- ✅ Article 50 — AI Content Watermarking (where applicable)
 
-## Pricing
+Need help getting compliant? **[Book a free 15-min diagnostic →](https://cal.com/csoai/august-audit)**
 
-| Option | Price |
-|---|---|
-| Self-host MIT | £0 |
-| One-off readiness packet | £499 |
-| £99/mo ongoing monitoring | £99/mo |
-| Governance Substrate | £499/mo |
-| Defence | £4,990/mo |
+## 🏢 Enterprise
 
-Buy: https://meok.ai/governance
+Need custom development, SLA guarantees, or white-label deployment?
 
-## Licence
+- **Pro:** $99/mo — Full MCP suite + EU AI Act tracking
+- **Enterprise:** $499/mo — Custom dev + SLA + Dedicated support
 
-MIT. By [MEOK AI Labs](https://meok.ai) (CSOAI LTD, UK Companies House 16939677).
+[View Pricing →](https://councilof.ai/pricing) | [Contact Sales →](mailto:sales@csoai.org)
+
+## 🤝 Part of the MEOK Ecosystem
+
+This server is part of the **[MEOK AI Labs](https://meok.ai)** ecosystem — 300+ MCP servers for sovereign AI governance.
+
+| Domain | Purpose |
+|--------|---------|
+| [councilof.ai](https://councilof.ai) | EU AI Act compliance marketplace |
+| [safetyof.ai](https://safetyof.ai) | AI safety & monitoring |
+| [meok.ai](https://meok.ai) | Sovereign AI platform |
+| [cobolbridge.ai](https://cobolbridge.ai) | Legacy modernization |
+
+## 📜 License
+
+MIT © [CSOAI-ORG](https://github.com/CSOAI-ORG)
+
+---
+
+<p align="center">
+  <sub>Built with 💜 by <a href="https://meok.ai">MEOK AI Labs</a> · UK Companies House 16939677</sub>
+</p>
