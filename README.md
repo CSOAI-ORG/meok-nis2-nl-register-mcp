@@ -1,4 +1,7 @@
 # Meok Nis2 Nl Register MCP
+mcp-name: io.github.CSOAI-ORG/meok-nis2-nl-register-mcp
+
+# NIS2 Netherlands Registration MCP
 
 [![MEOK AI Labs](https://img.shields.io/badge/MEOK-AI%20Labs-667eea)](https://meok.ai)
 [![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Compliant-22c55e)](https://councilof.ai)
@@ -118,3 +121,4 @@ Once configured, ask your assistant, for example:
 - "Use `classify_entity` to …"
 - "Use `generate_registration_packet` to …"
 - "Use `list_sectors` to …"
+<!-- BUY-LADDER:END -->
