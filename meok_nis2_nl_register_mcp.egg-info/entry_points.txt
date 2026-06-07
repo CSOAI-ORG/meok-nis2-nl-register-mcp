@@ -1,0 +1,2 @@
+[console_scripts]
+meok-nis2-nl-register-mcp = server:main

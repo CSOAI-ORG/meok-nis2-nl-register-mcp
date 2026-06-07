@@ -2,8 +2,26 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.CSOAI-ORG/meok-nis2-nl-register-mcp",
   "version": "1.0.0",
-  "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II (important), generates NCSC-NL portal payload, emits HMAC-signed Article 21 attestation. Deadline June 2026. By MEOK AI Labs.",
-  "repository": { "url": "https://github.com/CSOAI-ORG/meok-nis2-nl-register-mcp", "source": "github" },
-  "packages": [{ "registryType": "pypi", "identifier": "meok-nis2-nl-register-mcp", "version": "1.0.0", "runtimeHint": "python", "transport": { "type": "stdio" } }],
-  "remotes": [{ "type": "streamable-http", "url": "https://api.meok.ai/v1/governance/nis2-nl-register" }]
+  "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II",
+  "repository": {
+    "url": "https://github.com/CSOAI-ORG/meok-nis2-nl-register-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "meok-nis2-nl-register-mcp",
+      "version": "1.0.0",
+      "runtimeHint": "python",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.meok.ai/v1/governance/nis2-nl-register"
+    }
+  ]
 }
