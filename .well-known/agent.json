@@ -1,0 +1,68 @@
+{
+  "name": "meok-nis2-nl-register-mcp",
+  "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II",
+  "url": "https://proofof.ai/scorecard/meok-nis2-nl-register-mcp.html",
+  "version": "1.0.1",
+  "protocolVersion": "0.2.0",
+  "provider": {
+    "organization": "MEOK AI Labs",
+    "url": "https://meok.ai"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ],
+  "skills": [
+    {
+      "id": "classify_entity",
+      "name": "Classify Entity",
+      "description": "classify_entity via meok-nis2-nl-register-mcp",
+      "tags": [
+        "mcp",
+        "compliance"
+      ]
+    },
+    {
+      "id": "generate_registration_packet",
+      "name": "Generate Registration Packet",
+      "description": "generate_registration_packet via meok-nis2-nl-register-mcp",
+      "tags": [
+        "mcp",
+        "compliance"
+      ]
+    },
+    {
+      "id": "list_sectors",
+      "name": "List Sectors",
+      "description": "list_sectors via meok-nis2-nl-register-mcp",
+      "tags": [
+        "mcp",
+        "compliance"
+      ]
+    },
+    {
+      "id": "check_deadline_status",
+      "name": "Check Deadline Status",
+      "description": "check_deadline_status via meok-nis2-nl-register-mcp",
+      "tags": [
+        "mcp",
+        "compliance"
+      ]
+    },
+    {
+      "id": "sign_readiness_attestation",
+      "name": "Sign Readiness Attestation",
+      "description": "sign_readiness_attestation via meok-nis2-nl-register-mcp",
+      "tags": [
+        "mcp",
+        "compliance"
+      ]
+    }
+  ]
+}

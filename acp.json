@@ -1,0 +1,23 @@
+{
+  "acpVersion": "0.1",
+  "agent": {
+    "name": "meok-nis2-nl-register-mcp",
+    "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II",
+    "version": "1.0.1",
+    "provider": "MEOK AI Labs",
+    "interfaces": [
+      {
+        "type": "mcp",
+        "transport": "stdio",
+        "package": "meok-nis2-nl-register-mcp"
+      }
+    ],
+    "capabilities": [
+      "classify_entity",
+      "generate_registration_packet",
+      "list_sectors",
+      "check_deadline_status",
+      "sign_readiness_attestation"
+    ]
+  }
+}
