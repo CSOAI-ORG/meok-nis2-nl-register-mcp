@@ -1,19 +1,37 @@
-name: meok-nis2-nl-register-mcp
-description: "> ## 🧱 Part of the MEOK Governance Substrate (£499/mo)"
-version: 1.0.0
-author: MEOK AI Labs
-homepage: https://meok.ai
-repository: https://github.com/MEOK-AI-Labs/meok-nis2-nl-register-mcp
-license: MIT
-categories:
-  - compliance
-  - ai
-  - governance
-
-build:
-  type: python
-  entrypoint: server.py
-  dependencies:
-    - fastapi
-    - uvicorn
-    - mcp
+# smithery.yaml — Smithery (https://smithery.ai) submission payload
+# Repo: CSOAI-ORG/meok-nis2-nl-register-mcp
+# Generated: 2026-06-09
+# Transport: stdio (PyPI package, installed via uvx)
+# See: DISTRIBUTION_GAPS_2026-06-08.md for the channel strategy
+startCommand:
+  type: stdio
+  timeout: 120000
+  pingInterval: 5000
+  pingTimeout: 30000
+  configSchema:
+    type: object
+    required: []
+    properties:
+      apiKey:
+        type: string
+        description: "MEOK API key (optional; required for x402 paywalled tools)"
+        default: ""
+      x402PayTo:
+        type: string
+        description: "USDC address for x402 micropayments (default: meok.ai wallet)"
+        default: ""
+      logLevel:
+        type: string
+        description: "Log level (debug, info, warn, error)"
+        default: "info"
+    additionalProperties: false
+  commandFunction: |-
+    (config) => ({
+      command: 'uvx',
+      args: ['meok_nis2_nl_register'],
+      env: {
+        MEOK_API_KEY: config.apiKey || '',
+        X402_PAY_TO: config.x402PayTo || '',
+        MEOK_LOG_LEVEL: config.logLevel || 'info',
+      }
+    })
