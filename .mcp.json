@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "meok-nis2-nl-register-mcp": {
+      "command": "uvx",
+      "args": [
+        "meok-nis2-nl-register-mcp"
+      ]
+    }
+  }
+}
