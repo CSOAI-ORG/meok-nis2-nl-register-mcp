@@ -1,8 +1,8 @@
 {
-  "name": "meok-nis2-nl-register-mcp",
-  "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II",
-  "url": "https://proofof.ai/scorecard/meok-nis2-nl-register-mcp.html",
-  "version": "1.0.1",
+  "name": "meok-nis2-de-register-mcp",
+  "description": "Germany NIS2 BSI registration MCP. Generates BSI-portal-ready (Mein Unternehmenskonto) registration",
+  "url": "https://proofof.ai/scorecard/meok-nis2-de-register-mcp.html",
+  "version": "1.0.9",
   "protocolVersion": "0.2.0",
   "provider": {
     "organization": "MEOK AI Labs",
@@ -20,45 +20,36 @@
   ],
   "skills": [
     {
-      "id": "classify_entity",
-      "name": "Classify Entity",
-      "description": "classify_entity via meok-nis2-nl-register-mcp",
+      "id": "validate_org_profile",
+      "name": "Validate Org Profile",
+      "description": "validate_org_profile via meok-nis2-de-register-mcp",
       "tags": [
         "mcp",
         "compliance"
       ]
     },
     {
-      "id": "generate_registration_packet",
-      "name": "Generate Registration Packet",
-      "description": "generate_registration_packet via meok-nis2-nl-register-mcp",
+      "id": "generate_bsi_packet",
+      "name": "Generate Bsi Packet",
+      "description": "generate_bsi_packet via meok-nis2-de-register-mcp",
       "tags": [
         "mcp",
         "compliance"
       ]
     },
     {
-      "id": "list_sectors",
-      "name": "List Sectors",
-      "description": "list_sectors via meok-nis2-nl-register-mcp",
+      "id": "submit_to_mein_unternehmenskonto",
+      "name": "Submit To Mein Unternehmenskonto",
+      "description": "submit_to_mein_unternehmenskonto via meok-nis2-de-register-mcp",
       "tags": [
         "mcp",
         "compliance"
       ]
     },
     {
-      "id": "check_deadline_status",
-      "name": "Check Deadline Status",
-      "description": "check_deadline_status via meok-nis2-nl-register-mcp",
-      "tags": [
-        "mcp",
-        "compliance"
-      ]
-    },
-    {
-      "id": "sign_readiness_attestation",
-      "name": "Sign Readiness Attestation",
-      "description": "sign_readiness_attestation via meok-nis2-nl-register-mcp",
+      "id": "signed_registration_proof",
+      "name": "Signed Registration Proof",
+      "description": "signed_registration_proof via meok-nis2-de-register-mcp",
       "tags": [
         "mcp",
         "compliance"

@@ -1,27 +1,21 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.CSOAI-ORG/meok-nis2-nl-register-mcp",
-  "version": "1.0.1",
-  "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II",
+  "name": "io.github.CSOAI-ORG/meok-nis2-de-register-mcp",
+  "description": "Germany NIS2 BSI registration MCP. Generates BSI-portal-ready (Mein Unternehmenskonto) registration",
+  "version": "1.0.10",
   "repository": {
-    "url": "https://github.com/CSOAI-ORG/meok-nis2-nl-register-mcp",
+    "url": "https://github.com/CSOAI-ORG/meok-nis2-de-register-mcp",
     "source": "github"
   },
   "packages": [
     {
-      "registryType": "pypi",
-      "identifier": "meok-nis2-nl-register-mcp",
-      "version": "1.0.1",
-      "runtimeHint": "python",
+      "identifier": "meok-nis2-de-register-mcp",
+      "version": "1.0.10",
       "transport": {
         "type": "stdio"
-      }
-    }
-  ],
-  "remotes": [
-    {
-      "type": "streamable-http",
-      "url": "https://api.meok.ai/v1/governance/nis2-nl-register"
+      },
+      "registryType": "pypi",
+      "runtimeHint": "python"
     }
   ]
 }

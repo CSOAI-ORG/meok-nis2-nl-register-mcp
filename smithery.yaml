@@ -1,19 +1,27 @@
-name: meok-nis2-nl-register-mcp
-description: "> ## 🧱 Part of the MEOK Governance Substrate (£499/mo)"
-version: 1.0.0
+name: meok-nis2-de-register-mcp
+description: 'MCP server: meok-nis2-de-register-mcp'
+version: 1.0.5
 author: MEOK AI Labs
-homepage: https://meok.ai
-repository: https://github.com/MEOK-AI-Labs/meok-nis2-nl-register-mcp
+homepage: https://safetyof.ai
+repository: https://github.com/MEOK-AI-Labs/meok-nis2-de-register-mcp
 license: MIT
 categories:
-  - compliance
-  - ai
-  - governance
-
+- compliance
+- governance
+tools:
+- name: validate_org_profile
+  description: Determine whether a German org is in scope for NIS2 + classify entity
+    type
+- name: generate_bsi_packet
+  description: Generate the BSI-portal-ready registration packet. Pro tier required.
+- name: submit_to_mein_unternehmenskonto
+  description: Returns the field-by-field submission walkthrough for the BSI portal.
+- name: signed_registration_proof
+  description: Generate a HMAC-SHA256 signed attestation of NIS2 registration completion.
 build:
   type: python
   entrypoint: server.py
   dependencies:
-    - fastapi
-    - uvicorn
-    - mcp
+  - mcp>=1.0.0
+runtime:
+  python: '>=3.10'

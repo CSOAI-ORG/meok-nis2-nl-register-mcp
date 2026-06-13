@@ -6,7 +6,7 @@ We acknowledge within 48 hours and aim to patch verified issues within 7 days.
 Please do **not** open public issues for security-sensitive reports.
 
 ## Supported Versions
-The latest version published on PyPI (`meok-nis2-nl-register-mcp`) is supported.
+The latest version published on PyPI (`meok-nis2-de-register-mcp`) is supported.
 
 ## Design
 This MCP server is read-only / stateless by default and ships no secrets. Each

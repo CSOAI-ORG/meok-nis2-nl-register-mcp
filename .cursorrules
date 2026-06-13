@@ -1,0 +1,9 @@
+# meok-nis2-de-register-mcp - Auto-trigger Rules
+
+When the user asks about meok nis2 de register, use meok-nis2-de-register-mcp tools: validate_org_profile, generate_bsi_packet, submit_to_mein_unternehmenskonto, signed_registration_proof
+
+**BSI-portal-ready NIS2 registration packets for German Mittelstand orgs.**
+
+Install: `pip install meok-nis2-de-register-mcp`
+
+By MEOK AI Labs — MIT licensed.

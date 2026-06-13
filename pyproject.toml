@@ -1,30 +1,26 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "meok-nis2-nl-register-mcp"
 version = "1.0.1"
-description = "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II (important), generates NCSC-NL portal payload, emits HMAC-signed Article 21 attestation. Deadline June 2026. By MEOK AI Labs."
+description = "Netherlands NIS2 (Wbni) registration MCP. Generates NCSC-portal-ready (Mijn Organisatie) registration packets for the ~12,000 Dutch orgs in NIS2 scope. Validates org profile, classifies sector + size + entity type per Wbni. Late registration = up to €10M fines + bestuurder liability under Wbni art. 14a. By MEOK AI Labs."
+license = {file = "LICENSE"}
 readme = "README.md"
-license = { text = "MIT" }
 requires-python = ">=3.10"
-authors = [{ name = "Nicholas Templeman", email = "nicholas@meok.ai" }]
-keywords = ["mcp", "nis2", "wbni", "netherlands", "ncsc-nl", "compliance", "meok"]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3",
-  "Topic :: Office/Business :: Financial :: Investment",
-]
-dependencies = ["mcp[cli]>=1.3.0"]
+authors = [{name = "MEOK AI Labs", email = "nicholas@meok.ai"}]
+keywords = ["mcp", "nis2", "wbni", "ncsc", "netherlands", "nederland", "nl", "registratie", "essentiele-entiteit", "belangrijke-entiteit", "compliance", "signed-attestation", "meok-ai-labs"]
+classifiers = ["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License", "Operating System :: OS Independent", "Topic :: Security", "Natural Language :: Dutch"]
+dependencies = ["mcp>=1.0.0"]
 
 [project.urls]
-Homepage = "https://meok.ai/governance"
+Homepage = "https://meok.ai/meok-nis2-nl-register-mcp"
 Repository = "https://github.com/CSOAI-ORG/meok-nis2-nl-register-mcp"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+only-include = ["server.py"]
 
 [project.scripts]
 meok-nis2-nl-register-mcp = "server:main"
-
-[tool.setuptools]
-py-modules = ["server"]

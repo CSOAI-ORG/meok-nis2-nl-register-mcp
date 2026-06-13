@@ -1,0 +1,96 @@
+{
+  "name": "Meok Nis2 De Register Mcp",
+  "version": "1.0.9",
+  "url": "https://mcp.meok.ai/meok-nis2-de-register-mcp/a2a",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "protocolVersion": "0.3.0",
+  "description": "Germany NIS2 BSI registration MCP. Generates BSI-portal-ready (Mein Unternehmenskonto) registration packets for the ~30,000 German Mittelstand orgs in NIS2 scope. Validates org profile, classifies sector + size + entity type per BSIG (NIS2-Umsetzungsgesetz, in force 6 Dec 2025), generates the registration data structure, emits HMAC-signed proof of readiness. Late registration = €2M fines + management body personal liability under §38b BSIG. Built for the April–May 2026 deadline window. By MEOK AI Labs.",
+  "provider": {
+    "organization": "MEOK AI LABS",
+    "url": "https://meok.ai"
+  },
+  "defaultInputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "validate_org_profile",
+      "name": "Validate Org Profile",
+      "description": "Validate Org Profile — a tool of the meok-nis2-de-register-mcp MCP.",
+      "tags": [
+        "nis2"
+      ],
+      "inputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    },
+    {
+      "id": "generate_bsi_packet",
+      "name": "Generate Bsi Packet",
+      "description": "Generate Bsi Packet — a tool of the meok-nis2-de-register-mcp MCP.",
+      "tags": [
+        "nis2"
+      ],
+      "inputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    },
+    {
+      "id": "submit_to_mein_unternehmenskonto",
+      "name": "Submit To Mein Unternehmenskonto",
+      "description": "Submit To Mein Unternehmenskonto — a tool of the meok-nis2-de-register-mcp MCP.",
+      "tags": [
+        "nis2"
+      ],
+      "inputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    },
+    {
+      "id": "signed_registration_proof",
+      "name": "Signed Registration Proof",
+      "description": "Signed Registration Proof — a tool of the meok-nis2-de-register-mcp MCP.",
+      "tags": [
+        "nis2"
+      ],
+      "inputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "outputModes": [
+        "application/json",
+        "text/plain"
+      ]
+    }
+  ],
+  "documentationUrl": "https://meok.ai",
+  "x-meok": {
+    "mcp_name": "meok-nis2-de-register-mcp",
+    "verifier": "https://proofof.ai/verify",
+    "governed_by": "CSOAI 52-article charter"
+  }
+}

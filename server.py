@@ -1,278 +1,422 @@
 #!/usr/bin/env python3
 """
-Buy Pro: https://www.csoai.org/checkout
+NIS2 Germany BSI Registration MCP Server
+==========================================
+By MEOK AI Labs | https://meok.ai
 
-NIS2 Netherlands Registration MCP
-==================================
+Generates BSI-portal-ready NIS2 registration packets for German Mittelstand orgs.
 
-By MEOK AI Labs · https://meok.ai · MIT
-<!-- mcp-name: io.github.CSOAI-ORG/meok-nis2-nl-register-mcp -->
+URGENT CONTEXT (as of April 2026):
+  Germany's NIS2-Umsetzungsgesetz (NIS2 transposition) — the BSI Act amendments —
+  took force 6 December 2025. The BSI registration portal opened 6 January 2026.
+  ~30,000 in-scope German organisations must register within 3 months. Deadline
+  effectively April–May 2026. Late registration = €100K-€2M fine + named director
+  liability under § 38b BSIG.
 
-URGENT CONTEXT (May 2026)
--------------------------
-Netherlands NIS2 transposition (Wbni-2) entered force in Q1 2026 after a delay.
-The NL competent authority is NCSC-NL + sector-specific regulators (DNB for
-finance, ACM for telco, ILT for transport, IGJ for health). Self-assessment +
-registration is **due June 2026** for essential + important entities under
-Annex I and Annex II.
+PROBLEM SOLVED: most Mittelstand orgs are paying €5K-€20K to consultancies for
+work that's a 30-minute form. This MCP validates org profile, classifies sector +
+size + entity type, generates the BSI packet (sector designation + service map +
+contact register + management body attestation), and emits a HMAC-signed proof of
+registration readiness.
 
-This MCP validates an org profile, classifies entity type (essential vs
-important + sector), generates the NCSC-NL portal payload + management-body
-attestation, and emits a HMAC-signed proof of registration readiness.
+  💷 PRICE: £499 one-off OR £99/month for ongoing monitoring + change packets.
+  🔑 BUYER: German CISOs / IT directors / Compliance leads at Mittelstand orgs.
 
-Companion to:
-- `meok-nis2-de-register-mcp` (the German Mittelstand variant)
-- `dora-nis2-crosswalk-mcp` (DORA × NIS2 dual-compliance mapping)
-
-PRICE: £499 one-off · £99/mo ongoing monitoring · Substrate £499/mo.
+Install: pip install meok-nis2-de-register-mcp
+Run:     python server.py
 """
 
-from __future__ import annotations
-import hashlib
-import hmac
 import json
-import os
-import time
-from datetime import datetime, timezone
+import hashlib
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+from collections import defaultdict
 from mcp.server.fastmcp import FastMCP
 
+import os as _os
+import sys
+import os
 
-mcp = FastMCP("meok-nis2-nl-register")
-_HMAC_SECRET = os.environ.get("MEOK_HMAC_SECRET", "")
+_MEOK_API_KEY = _os.environ.get("MEOK_API_KEY", "")
+
+try:
+    from auth_middleware import check_access as _shared_check_access
+except ImportError:
+    def _shared_check_access(api_key: str = ""):
+        if _MEOK_API_KEY and api_key and api_key == _MEOK_API_KEY:
+            return True, "OK", "pro"
+        if _MEOK_API_KEY and api_key and api_key != _MEOK_API_KEY:
+            return False, "Invalid API key.", "free"
+        return True, "OK, Pro at https://www.csoai.org/checkout", "free"
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Wbni-2 (NL NIS2) sector taxonomy
-# ──────────────────────────────────────────────────────────────────────
+try:
+    from attestation import get_attestation_tool_response
+    _ATTESTATION_LOCAL = True
+except ImportError:
+    _ATTESTATION_LOCAL = False
 
-ANNEX_I_ESSENTIAL = {
-    "energie":        {"label": "Energy", "regulator": "ACM"},
-    "vervoer":        {"label": "Transport", "regulator": "ILT"},
-    "bankwezen":      {"label": "Banking", "regulator": "DNB"},
-    "financien":      {"label": "Financial market infrastructure", "regulator": "DNB"},
-    "gezondheidszorg":{"label": "Health", "regulator": "IGJ"},
-    "drinkwater":     {"label": "Drinking water", "regulator": "ILT"},
-    "afvalwater":     {"label": "Waste water", "regulator": "ILT"},
-    "digitale_infra": {"label": "Digital infrastructure", "regulator": "ACM"},
-    "ict_management": {"label": "ICT management (B2B)", "regulator": "NCSC-NL"},
-    "publieke_diensten": {"label": "Public administration", "regulator": "NCSC-NL"},
-    "ruimte":         {"label": "Space", "regulator": "NCSC-NL"},
+# V-06 FIX: SSRF allowlist on attestation API URL.
+try:
+    from ssrf_safe import resolve_attestation_api as _resolve_api  # type: ignore
+    _ATTESTATION_API = _resolve_api()
+except ImportError:
+    _ATTESTATION_API_RAW = _os.environ.get("MEOK_ATTESTATION_API", "https://meok-attestation-api.vercel.app")
+    _ALLOWED_API_HOSTS = {"meok-attestation-api.vercel.app", "meok-verify.vercel.app", "meok.ai", "csoai.org", "councilof.ai", "compliance.meok.ai"}
+    import urllib.parse as _urllib_parse
+    try:
+        _api_parsed = _urllib_parse.urlparse(_ATTESTATION_API_RAW)
+        _api_host = (_api_parsed.hostname or "").lower()
+        _api_scheme = (_api_parsed.scheme or "").lower()
+    except Exception:
+        _api_host, _api_scheme = "", ""
+    if _api_scheme != "https" or _api_host not in _ALLOWED_API_HOSTS:
+        _ATTESTATION_API = "https://meok-attestation-api.vercel.app"
+    else:
+        _ATTESTATION_API = _ATTESTATION_API_RAW.rstrip("/")
+
+
+def check_access(api_key: str = ""):
+    return _shared_check_access(api_key)
+
+
+# Stripe — £499 one-off product link (REPLACE if you create a dedicated product)
+STRIPE_499_ONE_OFF = "https://councilof.ai"  # currently the £5k assessment link — Nick: create £499 product
+STRIPE_99_MONTHLY = "https://councilof.ai"
+STRIPE_199 = "https://councilof.ai"
+
+FREE_DAILY_LIMIT = 50
+
+
+# ── BSI Act sector classification (NIS2-Umsetzungsgesetz Annex 1 + 2) ────────
+# §28 BSIG — Wesentliche Einrichtungen (Essential entities, Annex 1)
+ESSENTIAL_SECTORS_DE = {
+    "energy": {"de": "Energie", "examples": "Strom, Gas, Öl, Wasserstoff, Fernwärme"},
+    "transport": {"de": "Verkehr", "examples": "Luft, Schiene, Wasser, Straße"},
+    "banking": {"de": "Bankwesen", "examples": "Kreditinstitute (überschneidet sich mit DORA)"},
+    "financial_market_infra": {"de": "Finanzmarktinfrastrukturen", "examples": "Handelsplätze, zentrale Gegenparteien (CCPs)"},
+    "health": {"de": "Gesundheit", "examples": "Krankenhäuser, EU-Referenzlabore, Hersteller von kritischen Arzneimitteln/Medizinprodukten"},
+    "drinking_water": {"de": "Trinkwasserversorgung", "examples": "Versorger und Verteiler"},
+    "waste_water": {"de": "Abwasserentsorgung", "examples": "Sammlung, Entsorgung, Aufbereitung"},
+    "digital_infrastructure": {"de": "Digitale Infrastruktur", "examples": "IXPs, DNS-Anbieter, TLD-Registries, Cloud, Datenzentren, CDN, Trust Services, ÖKomm-Netze + -Dienste"},
+    "ict_service_management": {"de": "ICT-Service Management (B2B)", "examples": "MSPs, MSSPs"},
+    "public_administration": {"de": "Öffentliche Verwaltung", "examples": "Bundes- + Landesverwaltung"},
+    "space": {"de": "Weltraum", "examples": "Bodengestützte Infrastruktur für Raumdienste"},
 }
 
-ANNEX_II_IMPORTANT = {
-    "post_koerier":   {"label": "Postal and courier services", "regulator": "ACM"},
-    "afval":          {"label": "Waste management", "regulator": "ILT"},
-    "chemie":         {"label": "Chemicals", "regulator": "ILT"},
-    "voedsel":        {"label": "Food production / processing", "regulator": "NVWA"},
-    "industrie":      {"label": "Manufacturing (medical / computer / electrical / motor / transport)", "regulator": "NCSC-NL"},
-    "digitale_aanbieders": {"label": "Digital providers (search / cloud / social network / marketplace)", "regulator": "ACM"},
-    "onderzoek":      {"label": "Research organisations", "regulator": "NCSC-NL"},
+# §28 BSIG — Wichtige Einrichtungen (Important entities, Annex 2)
+IMPORTANT_SECTORS_DE = {
+    "postal": {"de": "Post- und Kurierdienste", "examples": ""},
+    "waste_management": {"de": "Abfallbewirtschaftung", "examples": ""},
+    "chemicals": {"de": "Chemie (Herstellung, Produktion, Vertrieb)", "examples": ""},
+    "food": {"de": "Lebensmittel (Produktion, Verarbeitung, Vertrieb)", "examples": ""},
+    "manufacturing": {"de": "Verarbeitendes Gewerbe", "examples": "Medizinprodukte, Computer/Elektronik, Elektrogeräte, Maschinen, Fahrzeuge"},
+    "digital_providers": {"de": "Digitale Anbieter", "examples": "Online-Marktplätze, Suchmaschinen, soziale Plattformen"},
+    "research": {"de": "Forschungseinrichtungen", "examples": ""},
 }
 
-REGISTRATION_DEADLINE = "2026-06-30"
+
+# Size thresholds (NIS2 Art 2 + § 28 BSIG)
+def _classify_size(employees: int, turnover_million_eur: float, balance_sheet_million_eur: float = 0) -> str:
+    """KMU classification per EU Recommendation 2003/361/EC (Art 2)."""
+    if employees < 50 and turnover_million_eur < 10 and balance_sheet_million_eur < 10:
+        return "small_or_micro"  # generally OUT of NIS2 scope unless special case
+    if employees < 250 and (turnover_million_eur < 50 or balance_sheet_million_eur < 43):
+        return "medium"  # IN scope — likely "important"
+    return "large"  # IN scope — likely "essential" if essential sector
 
 
-def _sign(payload: dict) -> str:
-    if not _HMAC_SECRET:
-        return "unsigned-no-key-configured"
-    return hmac.new(_HMAC_SECRET.encode(), json.dumps(payload, sort_keys=True).encode(), hashlib.sha256).hexdigest()
+mcp = FastMCP(
+    "meok-nis2-de-register",
+    instructions=(
+        "MEOK AI Labs Germany NIS2 BSI Registration MCP. Validates whether a German "
+        "organisation is in scope under the NIS2-Umsetzungsgesetz (BSIG amendments, "
+        "in force 6 Dec 2025). Generates the BSI-portal-ready registration packet + "
+        "HMAC-signed proof of readiness. Use BEFORE the registration deadline (~April "
+        "2026 for first wave). Late registration = §38b BSIG fines up to €2M + "
+        "personal director liability."
+    ),
+)
+
+def _server_meter_check(api_key: str = "") -> dict:
+    """Calls the live /verify endpoint for server-side metering. Returns the JSON dict.
+    Fail-open: if /verify is unreachable or KV isn't configured, returns allowed=True
+    (so the local rate-limit in _check_rate_limit remains the safety net)."""
+    try:
+        data = json.dumps({"api_key": api_key, "tool": ""}).encode()
+        req = _meter_urlreq.Request(_METER_URL, data=data,
+            headers={"Content-Type": "application/json"}, method="POST")
+        with _meter_urlreq.urlopen(req, timeout=2.5) as r:
+            d = json.loads(r.read())
+            if isinstance(d, dict) and "allowed" in d:
+                return d
+    except Exception:
+        pass
+    return {"allowed": True, "tier": "anonymous", "remaining": 200, "upgrade_url": "https://meok.ai/pricing"}
 
 
-def _ts() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Tools
-# ──────────────────────────────────────────────────────────────────────
-
-@mcp.tool()
-def classify_entity(sector: str, headcount: int, annual_turnover_eur: int) -> dict:
-    """
-    Classify an NL organisation as essential / important / out-of-scope under Wbni-2.
-
-    Args:
-        sector: One of the keys in ANNEX_I_ESSENTIAL or ANNEX_II_IMPORTANT.
-        headcount: Number of employees.
-        annual_turnover_eur: Annual turnover in EUR.
-
-    Returns:
-        {scope, classification, sector_label, regulator, size_category}
-    """
-    sector_key = sector.lower().replace("-", "_").replace(" ", "_")
-
-    # Size category (NIS2 Article 2(1))
-    if headcount >= 250 or annual_turnover_eur >= 50_000_000:
-        size = "large"
-    elif headcount >= 50 or annual_turnover_eur >= 10_000_000:
-        size = "medium"
-    else:
-        size = "small"
-
-    if sector_key in ANNEX_I_ESSENTIAL:
-        meta = ANNEX_I_ESSENTIAL[sector_key]
-        cls = "essential"
-        in_scope = (size in {"large", "medium"})
-    elif sector_key in ANNEX_II_IMPORTANT:
-        meta = ANNEX_II_IMPORTANT[sector_key]
-        cls = "important"
-        in_scope = (size in {"large", "medium"})
-    else:
-        return {
-            "scope": "out_of_scope",
-            "classification": "n/a",
-            "sector_label": "unknown sector",
-            "regulator": "n/a",
-            "size_category": size,
-            "hint": f"Sector key not found. Try one of: {list(ANNEX_I_ESSENTIAL) + list(ANNEX_II_IMPORTANT)}",
-        }
-
-    return {
-        "scope": "in_scope" if in_scope else "out_of_scope",
-        "classification": cls,
-        "sector_key": sector_key,
-        "sector_label": meta["label"],
-        "regulator": meta["regulator"],
-        "size_category": size,
-        "deadline": REGISTRATION_DEADLINE,
-        "hint": "Call generate_registration_packet() with the validated profile." if in_scope else "Below thresholds — no registration required, but voluntary opt-in possible.",
-    }
+_METER_URL = "https://proofof.ai/verify"
 
 
 @mcp.tool()
-def generate_registration_packet(
-    entity_legal_name: str,
-    kvk_number: str,
-    sector_key: str,
-    headcount: int,
-    annual_turnover_eur: int,
-    primary_contact_email: str,
-    management_body_member: str,
-    cisos_attestation: bool = False,
-    bsn_or_lei: Optional[str] = None,
-) -> dict:
-    """
-    Generate the NCSC-NL registration packet for one entity.
+def validate_org_profile(
+    org_name: str,
+    legal_form: str,
+    sector: str,
+    employees: int,
+    turnover_million_eur: float,
+    balance_sheet_million_eur: float = 0,
+    delivers_critical_service: bool = False,
+    api_key: str = "",
+) -> str:
+    """Determine whether a German org is in scope for NIS2 + classify entity type
+    + size class.
 
-    Args:
-        entity_legal_name: Registered name from KvK.
-        kvk_number: Dutch Chamber of Commerce number.
-        sector_key: From ANNEX_I_ESSENTIAL or ANNEX_II_IMPORTANT.
-        headcount: Employees.
-        annual_turnover_eur: Annual turnover EUR.
-        primary_contact_email: NL security contact.
-        management_body_member: Name + role of management-body sign-off (Wbni-2 §10).
-        cisos_attestation: Has the CISO attested to risk-management measures?
-        bsn_or_lei: Optional BSN / LEI for cross-reference.
-
-    Returns:
-        {packet, signature, days_to_deadline}
+    - sector: one of energy / transport / banking / financial_market_infra / health /
+      drinking_water / waste_water / digital_infrastructure / ict_service_management /
+      public_administration / space / postal / waste_management / chemicals / food /
+      manufacturing / digital_providers / research
     """
-    classification = classify_entity(sector_key, headcount, annual_turnover_eur)
-    today = datetime.now(timezone.utc).date()
-    deadline = datetime.fromisoformat(REGISTRATION_DEADLINE).date()
-    days_left = (deadline - today).days
+    allowed, msg, tier = check_access(api_key)
+    if not allowed:
+        return json.dumps({"error": msg, "upgrade_url": STRIPE_499_ONE_OFF})
+
+    is_essential = sector in ESSENTIAL_SECTORS_DE
+    is_important = sector in IMPORTANT_SECTORS_DE
+    if not (is_essential or is_important):
+        return json.dumps({
+            "in_scope": "UNCLEAR",
+            "reason": f"sector '{sector}' is not in NIS2 Annex 1 (essential) or Annex 2 (important). Verify sector classification with BSI.",
+            "valid_essential_sectors": list(ESSENTIAL_SECTORS_DE.keys()),
+            "valid_important_sectors": list(IMPORTANT_SECTORS_DE.keys()),
+        })
+
+    size = _classify_size(employees, turnover_million_eur, balance_sheet_million_eur)
+    if size == "small_or_micro" and not delivers_critical_service:
+        return json.dumps({
+            "in_scope": False,
+            "reason": "Small/micro entity (KMU under EU 2003/361). Generally exempt unless designated as critical (§28a BSIG) or fits a special case (e.g. sole national DNS provider).",
+            "double_check": "Confirm with BSI if your service is uniquely irreplaceable in Germany.",
+        })
+
+    entity_type = "wesentliche_einrichtung_essential" if is_essential and size == "large" else "wichtige_einrichtung_important"
+    sector_meta = ESSENTIAL_SECTORS_DE.get(sector) or IMPORTANT_SECTORS_DE.get(sector)
+
+    return json.dumps({
+        "org_name": org_name,
+        "in_scope": True,
+        "entity_type": entity_type,
+        "entity_type_de": "Wesentliche Einrichtung" if entity_type.startswith("wesentliche") else "Wichtige Einrichtung",
+        "sector": sector,
+        "sector_de": sector_meta["de"],
+        "sector_examples": sector_meta["examples"],
+        "size_class": size,
+        "registration_required": True,
+        "registration_deadline": "~April–May 2026 (3 months from BSI portal opening 6 Jan 2026)",
+        "fine_for_late_registration": "Up to €2,000,000 (§ 38b BSIG) + personal liability of management body",
+        "next_step": "Call generate_bsi_packet() with the same parameters to produce the registration data structure",
+        "upsell": f"£499 produces the full signed packet ready to paste into the BSI portal: {STRIPE_499_ONE_OFF}" if tier == "free" else None,
+    }, indent=2)
+
+
+@mcp.tool()
+def generate_bsi_packet(
+    org_name: str,
+    legal_form: str,
+    register_court: str,
+    register_number: str,
+    sector: str,
+    sub_sector: str,
+    services_csv: str,
+    employees: int,
+    turnover_million_eur: float,
+    contact_name: str,
+    contact_role: str,
+    contact_email: str,
+    contact_phone: str,
+    head_office_address: str,
+    nationally_offered_services: bool = True,
+    api_key: str = "",
+) -> str:
+    """Generate the BSI-portal-ready registration packet. Pro tier required.
+
+    The output JSON maps directly to the German "Mein Unternehmenskonto" /
+    BSI-Meldeportal field structure. Paste into the portal in ~10 minutes.
+    """
+    allowed, msg, tier = check_access(api_key)
+    if not allowed:
+        return json.dumps({"error": msg, "upgrade_url": STRIPE_499_ONE_OFF})
+    if tier == "free":
+        return json.dumps({
+            "error": "BSI packet generation requires the £499 one-off purchase OR Pro (£199/mo).",
+            "upgrade_url": STRIPE_499_ONE_OFF,
+            "preview_what_you_get": [
+                "Vollständiger Antragsdatensatz für das BSI-Meldeportal",
+                "Sektorklassifikation gemäß §28 BSIG (Anlage 1 oder Anlage 2)",
+                "Diensteliste mit Kritikalitätsbewertung",
+                "Kontaktregister (CISO, GeschäftsführerIn, Stellvertretung)",
+                "HMAC-signierter Nachweis der Registrierungsbereitschaft (öffentliche Verifikations-URL)",
+                "Vorlage für die Schulungspflicht-Erklärung (§38 BSIG)",
+                "Eskalationspfad für signifikante Vorfälle (24h / 72h / 1 Monat)",
+            ],
+        })
+
+    services = [s.strip() for s in services_csv.split(",") if s.strip()]
+    is_essential = sector in ESSENTIAL_SECTORS_DE
+    entity_type = "Wesentliche Einrichtung" if is_essential else "Wichtige Einrichtung"
+    annex = "Anlage 1 BSIG" if is_essential else "Anlage 2 BSIG"
 
     packet = {
-        "wbni_2_registration": {
-            "entity_legal_name": entity_legal_name,
-            "kvk_number": kvk_number,
-            "bsn_or_lei": bsn_or_lei,
-            "sector_classification": classification,
-            "primary_contact": {"email": primary_contact_email},
-            "management_body": {
-                "named_member": management_body_member,
-                "wbni_2_clause": "§10 verantwoordingsplicht (accountability obligation)",
-            },
-            "cisos_attestation": cisos_attestation,
-            "submitted_at": _ts(),
-            "deadline": REGISTRATION_DEADLINE,
-            "days_to_deadline": days_left,
-        }
+        "_meta": {
+            "generated_utc": datetime.now(timezone.utc).isoformat(),
+            "generator": "meok-nis2-de-register-mcp v1.0",
+            "regulation": "BSIG (NIS2-Umsetzungsgesetz) §§ 28, 32, 38",
+            "purpose": "BSI-Meldeportal Registrierung",
+        },
+        "organisation": {
+            "name": org_name,
+            "rechtsform": legal_form,
+            "register_court": register_court,
+            "register_number": register_number,
+            "head_office_address": head_office_address,
+            "employees": employees,
+            "turnover_million_eur": turnover_million_eur,
+        },
+        "classification": {
+            "entity_type": entity_type,
+            "entity_type_key": "wesentlich" if is_essential else "wichtig",
+            "annex": annex,
+            "sector_key": sector,
+            "sector_de": (ESSENTIAL_SECTORS_DE.get(sector) or IMPORTANT_SECTORS_DE.get(sector, {})).get("de", ""),
+            "sub_sector": sub_sector,
+            "nationally_offered_services": nationally_offered_services,
+        },
+        "services": [{"service_name": s, "criticality": "primary"} for s in services],
+        "primary_contact": {
+            "name": contact_name,
+            "role": contact_role,
+            "email": contact_email,
+            "phone": contact_phone,
+            "is_management_body_member": False,
+        },
+        "obligations_acknowledged": {
+            "art_21_security_measures_implemented": False,
+            "art_23_incident_reporting_runbook_in_place": False,
+            "management_body_training_completed_or_scheduled": False,
+            "supply_chain_risk_management_documented": False,
+            "encryption_at_rest_in_transit_implemented": False,
+            "mfa_enforced": False,
+            "vulnerability_disclosure_policy_published": False,
+        },
+        "next_actions_before_submission": [
+            "Tick the 7 obligations_acknowledged once they are TRUE — do NOT submit with any false values",
+            "Verify register_court + register_number match the Handelsregister entry exactly",
+            "Confirm contact_email is a monitored shared inbox, not personal",
+            "Generate signed proof via signed_registration_proof() and store with your records",
+            "Paste this JSON into the BSI-Meldeportal at https://www.bsi.bund.de/DE/Themen/Regulierte-Wirtschaft/NIS-2-Umsetzungsgesetz",
+        ],
     }
-    packet["signature"] = _sign(packet)
-    next_step = ("Submit the packet via the NCSC-NL portal: https://www.ncsc.nl/onderwerpen/nis2"
-                 if classification["scope"] == "in_scope"
-                 else "Out of scope. No submission required.")
-    return {
-        "packet": packet,
-        "signature": packet["signature"],
-        "days_to_deadline": days_left,
-        "next_step": next_step,
-        "regulator": classification.get("regulator"),
-        "post_deadline_risk": "€100K-€10M fine + named director liability (Wbni-2 §38a)" if days_left < 0 else None,
-    }
+    return json.dumps(packet, indent=2, ensure_ascii=False)
 
 
 @mcp.tool()
-def list_sectors() -> dict:
-    """Return the Wbni-2 sector taxonomy — Annex I + Annex II."""
-    return {
-        "annex_i_essential": ANNEX_I_ESSENTIAL,
-        "annex_ii_important": ANNEX_II_IMPORTANT,
-        "registration_deadline": REGISTRATION_DEADLINE,
-        "total_essential": len(ANNEX_I_ESSENTIAL),
-        "total_important": len(ANNEX_II_IMPORTANT),
-    }
+def submit_to_mein_unternehmenskonto(api_key: str = "") -> str:
+    """Returns the field-by-field submission walkthrough for the BSI portal.
+    (We do NOT auto-submit — the portal requires authenticated browser session +
+    qualified electronic signature. This tool gives you the click-by-click guide.)"""
+    allowed, msg, tier = check_access(api_key)
+    if not allowed:
+        return json.dumps({"error": msg, "upgrade_url": STRIPE_499_ONE_OFF})
+    return json.dumps({
+        "portal_url": "https://www.bsi.bund.de/DE/Themen/Regulierte-Wirtschaft/NIS-2-Umsetzungsgesetz",
+        "auth_required": "Mein Unternehmenskonto (ELSTER-based) OR Bundes-ID with eID",
+        "estimated_time_with_packet": "10–15 minutes",
+        "steps": [
+            "1. Log into 'Mein Unternehmenskonto' at https://mein-unternehmenskonto.de",
+            "2. Navigate to 'BSI-Meldeportal NIS-2'",
+            "3. Choose 'Erstregistrierung' (initial registration)",
+            "4. Paste the JSON packet generated by generate_bsi_packet() into each section's fields",
+            "5. Verify all 7 obligations_acknowledged are TRUE — system will reject false values",
+            "6. Upload signed proof PDF (from signed_registration_proof())",
+            "7. Submit with qualified electronic signature (qeS) of management body member",
+            "8. Save the BSI 'Anmeldebestätigung' (confirmation receipt) — this is your audit trail",
+        ],
+        "common_rejection_reasons": [
+            "Sector mismatch — chose 'Anlage 1' but BSI determines you fit 'Anlage 2'",
+            "Register data mismatch — Handelsregister-Auszug differs",
+            "Contact email is personal (gmail/gmx etc.) instead of organisation domain",
+            "Management body member not present at submission",
+        ],
+        "if_late": "You're not too late if it's still April 2026 — but submit THIS WEEK. Each week of delay materially raises the §38b BSIG fine band.",
+    }, indent=2, ensure_ascii=False)
 
 
 @mcp.tool()
-def check_deadline_status() -> dict:
-    """How many days until the Wbni-2 registration deadline?"""
-    today = datetime.now(timezone.utc).date()
-    deadline = datetime.fromisoformat(REGISTRATION_DEADLINE).date()
-    days_left = (deadline - today).days
-    return {
-        "today": today.isoformat(),
-        "deadline": REGISTRATION_DEADLINE,
-        "days_remaining": days_left,
-        "status": "past_deadline" if days_left < 0 else "approaching" if days_left < 60 else "on_track",
-        "regulator_portal": "https://www.ncsc.nl/onderwerpen/nis2",
+def signed_registration_proof(
+    org_name: str,
+    submitted_to_bsi_utc: str,
+    bsi_anmeldebestaetigung_id: str = "",
+    api_key: str = "",
+    email: str = "",
+) -> str:
+    """Generate a HMAC-SHA256 signed attestation of NIS2 registration completion.
+    Useful for: customer due-diligence requests, board reporting, supply-chain
+    NIS2 §28 attestations, audit trails. Pro/Enterprise required."""
+    allowed, msg, tier = check_access(api_key)
+    if not allowed:
+        return json.dumps({"error": msg, "upgrade_url": STRIPE_499_ONE_OFF})
+    if tier == "free":
+        return json.dumps({
+            "error": "Signed registration proof requires the £499 purchase OR Pro (£199/mo).",
+            "upgrade_url": STRIPE_499_ONE_OFF,
+        })
+
+    findings = [
+        f"BSI-Meldeportal Registrierung abgeschlossen am {submitted_to_bsi_utc}",
+        f"Anmeldebestätigung: {bsi_anmeldebestaetigung_id or 'pending receipt from BSI'}",
+        "Vollständiger Antragsdatensatz gemäß § 28 BSIG eingereicht",
+        "Sieben Verpflichtungserklärungen (Art 21 + Art 23 + Schulung + Lieferkette + Verschlüsselung + MFA + CVD) bestätigt",
+    ]
+    payload = {
+        "regulation": "Germany NIS2 (BSIG / NIS2-Umsetzungsgesetz, in force 6 Dec 2025)",
+        "entity": org_name,
+        "score": 100.0,
+        "findings": findings,
+        "tier": tier,
     }
+    if _ATTESTATION_LOCAL:
+        cert = get_attestation_tool_response(
+            regulation=payload["regulation"], entity=org_name, score=100.0,
+            findings=findings, articles_audited=["BSIG §28", "BSIG §32", "BSIG §38", "BSIG §38b"],
+            tier=tier,
+        )
+    else:
+        import urllib.request as _url
+        try:
+            req = _url.Request(
+                f"{_ATTESTATION_API}/sign",
+                data=json.dumps({"api_key": api_key, "email": email, **payload}).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            with _url.urlopen(req, timeout=15) as resp:
+                cert = json.loads(resp.read())
+        except Exception as e:
+            return json.dumps({"error": f"Attestation API unreachable: {e}"})
+    return json.dumps(cert, indent=2)
 
 
-@mcp.tool()
-def sign_readiness_attestation(entity_legal_name: str, kvk_number: str, controls_status: dict) -> dict:
-    """
-    Emit a HMAC-signed Wbni-2 readiness attestation for board sign-off.
-
-    Args:
-        entity_legal_name: Registered name.
-        kvk_number: Dutch CoC.
-        controls_status: Dict of NIS2 Article 21 risk-management measures + their status.
-
-    Returns:
-        {attestation, signature, verify_url}
-    """
-    att_id = f"WBNI2_{kvk_number}_{int(time.time())}_{os.urandom(4).hex()}"
-    sealed = {
-        "attestation_id": att_id,
-        "spec": "NIS2_ART_21_NL_WBNI2",
-        "entity_legal_name": entity_legal_name,
-        "kvk_number": kvk_number,
-        "controls_status": controls_status,
-        "sealed_at": _ts(),
-        "issuer": "MEOK AI Labs (CSOAI LTD)",
-    }
-    sig = _sign(sealed)
-    return {
-        "attestation_id": att_id,
-        "attestation": sealed,
-        "signature": sig,
-        "verify_url": f"https://meok-attestation-api.vercel.app/verify/{att_id}",
-        "board_sign_off_hint": "Print this attestation and have the named management-body member sign it. Wbni-2 §10 accountability is on the member.",
-    }
+def main():
+    mcp.run()
 
 
 if __name__ == "__main__":
-    mcp.run()
+    main()
 
 
 # ── MEOK monetization layer (Stripe upgrade · PAYG · pricing) ──────────
 # Free tier is zero-config. Upgrade to Pro (unlimited) or pay-as-you-go per call.
 import os as _meok_os
-MEOK_STRIPE_UPGRADE = "https://buy.stripe.com/5kQ6oJ0xS3ce8sl7ew8k91j"  # Pro (unlimited)
+MEOK_STRIPE_UPGRADE = "https://buy.stripe.com/aFa7sNcgAdQS0ZT1Uc8k91t"  # Pro (unlimited)
 MEOK_PAYG_KEY = _meok_os.environ.get("MEOK_PAYG_KEY", "")  # set to enable PAYG (x402 / ~GBP0.05 per call)
 MEOK_PRICING = "https://meok.ai/pricing"
 

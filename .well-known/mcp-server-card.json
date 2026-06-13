@@ -1,8 +1,8 @@
 {
-  "name": "meok-nis2-nl-register-mcp",
-  "title": "Meok Nis2 Nl Register Mcp",
-  "description": "NIS2 Netherlands Registration MCP (Wbni-2). Classifies entities Annex I (essential) / Annex II (important), generates NCSC-NL portal payload, emits HMAC-signed Article 21 attestation. Deadline June 2026. By MEOK AI Labs.",
-  "version": "1.0.0",
+  "name": "meok-nis2-de-register-mcp",
+  "title": "Meok Nis2 De Register Mcp",
+  "description": "Germany NIS2 BSI registration MCP. Generates BSI-portal-ready (Mein Unternehmenskonto) registration packets for the ~30,000 German Mittelstand orgs in NIS2 scope. Validates org profile, classifies sector + size + entity type per BSIG (NIS2-Umsetzungsgesetz, in force 6 Dec 2025), generates the registration data structure, emits HMAC-signed proof of readiness. Late registration = \u20ac2M fines + management body personal liability under \u00a738b BSIG. Built for the April\u2013May 2026 deadline window. By MEOK AI Labs.",
+  "version": "1.0.9",
   "homepage": "https://meok.ai",
   "license": "MIT",
   "transport": {
@@ -10,19 +10,16 @@
   },
   "tools": [
     {
-      "name": "classify_entity"
+      "name": "validate_org_profile"
     },
     {
-      "name": "generate_registration_packet"
+      "name": "generate_bsi_packet"
     },
     {
-      "name": "list_sectors"
+      "name": "submit_to_mein_unternehmenskonto"
     },
     {
-      "name": "check_deadline_status"
-    },
-    {
-      "name": "sign_readiness_attestation"
+      "name": "signed_registration_proof"
     }
   ]
 }
